@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>덕영-그래픽소프트웨어</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Bebas+Neue&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #12121e;
+    --accent1: #e91e8c;
+    --accent2: #00d4ff;
+    --accent3: #ffe566;
+    --text: #f0f0ff;
+    --text-dim: #8888aa;
+    --grid: rgba(0,212,255,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom Cursor */
+  #cursor {
+    position: fixed; width: 12px; height: 12px;
+    background: var(--accent1); border-radius: 50%;
+    pointer-events: none; z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, background 0.3s;
+    mix-blend-mode: screen;
+  }
+  #cursor-ring {
+    position: fixed; width: 36px; height: 36px;
+    border: 1.5px solid var(--accent2); border-radius: 50%;
+    pointer-events: none; z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: all 0.18s ease;
+    mix-blend-mode: screen;
+  }
+
+  /* Background grid */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridShift 20s linear infinite;
+  }
+  @keyframes gridShift {
+    from { background-position: 0 0; }
+    to { background-position: 60px 60px; }
+  }
+
+  /* Scanlines */
+  .scanlines {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+    );
+  }
+
+  /* Floating particles */
+  .particles { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+  .particle {
+    position: absolute; width: 2px; height: 2px;
+    background: var(--accent2); border-radius: 50%;
+    animation: floatUp linear infinite;
+    opacity: 0;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 0.8; }
+    90% { opacity: 0.4; }
+    100% { transform: translateY(-10vh) translateX(var(--dx, 0px)); opacity: 0; }
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 48px;
+    background: linear-gradient(180deg, rgba(10,10,18,0.95) 0%, transparent 100%);
+    backdrop-filter: blur(4px);
+  }
+  .logo {
+    font-family: 'Orbitron', monospace; font-weight: 900;
+    font-size: 1.1rem; letter-spacing: 0.15em;
+    color: var(--accent2);
+    text-shadow: 0 0 20px var(--accent2);
+    position: relative;
+  }
+  .logo::after {
+    content: ''; position: absolute; bottom: -4px; left: 0; right: 0;
+    height: 1px; background: linear-gradient(90deg, var(--accent2), transparent);
+  }
+  .nav-links { display: flex; gap: 32px; list-style: none; }
+  .nav-links a {
+    color: var(--text-dim); text-decoration: none; font-size: 0.85rem;
+    letter-spacing: 0.1em; font-weight: 300;
+    transition: color 0.3s;
+    position: relative;
+    cursor: none;
+  }
+  .nav-links a::after {
+    content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 1px;
+    background: var(--accent1); transition: width 0.3s;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-links a:hover::after { width: 100%; }
+
+  /* HERO */
+  .hero {
+    position: relative; z-index: 10;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 120px 24px 60px;
+    overflow: hidden;
+  }
+
+  .hero-circle {
+    position: absolute; width: 600px; height: 600px;
+    border-radius: 50%;
+    border: 1px solid rgba(233,30,140,0.15);
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    animation: rotateSlow 30s linear infinite;
+  }
+  .hero-circle::before {
+    content: ''; position: absolute; inset: 30px;
+    border-radius: 50%; border: 1px solid rgba(0,212,255,0.1);
+    animation: rotateSlow 20s linear infinite reverse;
+  }
+  .hero-circle::after {
+    content: ''; position: absolute; inset: 80px;
+    border-radius: 50%; border: 1px dashed rgba(255,229,102,0.08);
+    animation: rotateSlow 40s linear infinite;
+  }
+  @keyframes rotateSlow { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+  .corner {
+    position: absolute; width: 80px; height: 80px;
+    border-color: var(--accent1); border-style: solid;
+    opacity: 0.4;
+  }
+  .corner-tl { top: 80px; left: 40px; border-width: 2px 0 0 2px; }
+  .corner-tr { top: 80px; right: 40px; border-width: 2px 2px 0 0; }
+  .corner-bl { bottom: 40px; left: 40px; border-width: 0 0 2px 2px; }
+  .corner-br { bottom: 40px; right: 40px; border-width: 0 2px 2px 0; }
+
+  .tag {
+    display: inline-block; margin-bottom: 20px;
+    padding: 6px 16px; border: 1px solid var(--accent1);
+    font-size: 0.7rem; letter-spacing: 0.25em; color: var(--accent1);
+    font-family: 'Orbitron', monospace;
+    animation: fadeInDown 0.8s ease both;
+    text-shadow: 0 0 10px var(--accent1);
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 9vw, 8rem);
+    line-height: 0.95; letter-spacing: 0.04em;
+    animation: fadeInUp 1s ease 0.2s both;
+  }
+  .hero-title .line1 { display: block; color: var(--text); position: relative; }
+  .hero-title .line2 {
+    display: block;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 30px rgba(233,30,140,0.5));
+  }
+
+  .glitch { position: relative; }
+  .glitch::before, .glitch::after {
+    content: attr(data-text);
+    position: absolute; top: 0; left: 0; width: 100%;
+  }
+  .glitch::before {
+    color: var(--accent1); animation: glitch1 4s infinite;
+    clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  }
+  .glitch::after {
+    color: var(--accent2); animation: glitch2 4s infinite;
+    clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+  }
+  @keyframes glitch1 {
+    0%, 90%, 100% { transform: translate(0); opacity: 0; }
+    92% { transform: translate(-3px, -1px); opacity: 0.8; }
+    94% { transform: translate(3px, 1px); opacity: 0.8; }
+    96% { transform: translate(-1px, 0); opacity: 0.6; }
+  }
+  @keyframes glitch2 {
+    0%, 90%, 100% { transform: translate(0); opacity: 0; }
+    93% { transform: translate(3px, 1px); opacity: 0.8; }
+    95% { transform: translate(-3px, -1px); opacity: 0.8; }
+    97% { transform: translate(1px, 0); opacity: 0.6; }
+  }
+
+  .hero-sub {
+    margin-top: 20px; font-size: 0.9rem;
+    color: var(--text-dim); letter-spacing: 0.08em;
+    animation: fadeInUp 1s ease 0.4s both;
+  }
+
+  .hero-cta {
+    margin-top: 48px; display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+    animation: fadeInUp 1s ease 0.6s both;
+  }
+  .btn-primary {
+    padding: 14px 36px;
+    background: linear-gradient(135deg, var(--accent1), #c2186e);
+    color: white; border: none; font-family: 'Orbitron', monospace;
+    font-size: 0.75rem; letter-spacing: 0.15em; cursor: none;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    transition: all 0.3s; box-shadow: 0 0 30px rgba(233,30,140,0.4);
+  }
+  .btn-primary:hover { box-shadow: 0 0 50px rgba(233,30,140,0.8); transform: translateY(-2px); }
+  .btn-secondary {
+    padding: 14px 36px;
+    background: transparent;
+    color: var(--accent2); border: 1px solid var(--accent2);
+    font-family: 'Orbitron', monospace; font-size: 0.75rem; letter-spacing: 0.15em;
+    cursor: none; clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    transition: all 0.3s;
+  }
+  .btn-secondary:hover { background: rgba(0,212,255,0.1); box-shadow: 0 0 30px rgba(0,212,255,0.3); transform: translateY(-2px); }
+
+  /* Stats bar */
+  .stats-bar {
+    position: relative; z-index: 10;
+    display: flex; justify-content: center;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(18,18,30,0.8);
+    backdrop-filter: blur(10px);
+  }
+  .stat {
+    flex: 1; max-width: 200px;
+    padding: 28px 20px; text-align: center;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+  }
+  .stat::before {
+    content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 40px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+  }
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem;
+    background: linear-gradient(135deg, var(--accent2), var(--accent1));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .stat-label { font-size: 0.7rem; letter-spacing: 0.15em; color: var(--text-dim); margin-top: 4px; }
+
+  /* SECTION */
+  section {
+    position: relative; z-index: 10;
+    padding: 100px 48px;
+    max-width: 1400px; margin: 0 auto;
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 20px;
+    margin-bottom: 60px;
+  }
+  .section-num { font-family: 'Orbitron', monospace; font-size: 0.7rem; color: var(--accent1); letter-spacing: 0.2em; opacity: 0.7; }
+  .section-title { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; letter-spacing: 0.06em; }
+  .section-line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(233,30,140,0.4), transparent); }
+
+  /* Gallery grid */
+  /* ── SHOWCASE GALLERY ── */
+  .gallery-showcase { display: flex; flex-direction: column; gap: 20px; }
+
+  /* 메인 뷰어 */
+  .gallery-viewer {
+    position: relative; width: 100%; height: 500px;
+    border: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden; border-radius: 4px; background: var(--surface);
+  }
+  .viewer-track {
+    display: flex; height: 100%;
+    transition: transform 0.55s cubic-bezier(0.77,0,0.18,1);
+  }
+  .viewer-slide { min-width: 100%; height: 100%; position: relative; flex-shrink: 0; }
+  .viewer-slide-bg { position: absolute; inset: 0; opacity: 0.2; transition: opacity 0.4s; }
+  .viewer-slide-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .viewer-info {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 48px 32px 28px;
+    background: linear-gradient(0deg, rgba(10,10,18,0.97) 0%, rgba(10,10,18,0.5) 60%, transparent 100%);
+  }
+  .viewer-category {
+    font-family: "Orbitron", monospace; font-size: 0.65rem;
+    letter-spacing: 0.25em; color: var(--accent2); margin-bottom: 8px;
+    text-shadow: 0 0 10px var(--accent2);
+  }
+  .viewer-title {
+    font-family: "Bebas Neue", sans-serif; font-size: 2.8rem;
+    line-height: 1; letter-spacing: 0.04em; margin-bottom: 6px;
+    transition: opacity 0.3s;
+  }
+  .viewer-desc { font-size: 0.8rem; color: var(--text-dim); letter-spacing: 0.05em; }
+  .viewer-counter {
+    position: absolute; top: 16px; right: 20px; z-index: 10;
+    font-family: "Orbitron", monospace; font-size: 0.6rem;
+    letter-spacing: 0.2em; color: rgba(255,255,255,0.35);
+  }
+  .viewer-counter span { color: var(--accent2); }
+  .viewer-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px; z-index: 10;
+    background: rgba(10,10,18,0.75); border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text); font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: none; transition: all 0.25s; backdrop-filter: blur(6px);
+    clip-path: polygon(6px 0%,100% 0%,100% calc(100% - 6px),calc(100% - 6px) 100%,0% 100%,0% 6px);
+  }
+  .viewer-arrow:hover { border-color: var(--accent1); color: var(--accent1); box-shadow: 0 0 16px rgba(233,30,140,0.4); }
+  .viewer-arrow.prev { left: 16px; }
+  .viewer-arrow.next { right: 16px; }
+  .viewer-dots { position: absolute; bottom: 24px; right: 28px; z-index: 10; display: flex; gap: 7px; align-items: center; }
+  .viewer-dot {
+    width: 6px; height: 6px; background: rgba(255,255,255,0.2);
+    transition: all 0.3s; cursor: none;
+    clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%);
+  }
+  .viewer-dot.active { background: var(--accent1); transform: scale(1.5); box-shadow: 0 0 8px var(--accent1); }
+
+  /* 카테고리 메뉴 */
+  .gallery-menu { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+  .gallery-menu-item {
+    position: relative; height: 110px;
+    border: 1px solid rgba(255,255,255,0.06); overflow: hidden; border-radius: 4px;
+    cursor: none; transition: all 0.3s;
+    clip-path: polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+  }
+  .gallery-menu-item:hover, .gallery-menu-item.active { border-color: var(--accent1); box-shadow: 0 0 20px rgba(233,30,140,0.2); }
+  .gallery-menu-item.active::before {
+    content:""; position: absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg,var(--accent1),var(--accent2)); z-index:3;
+  }
+  .menu-bg { position: absolute; inset:0; opacity:0.12; transition: opacity 0.3s; }
+  .gallery-menu-item:hover .menu-bg, .gallery-menu-item.active .menu-bg { opacity:0.26; }
+  .menu-content {
+    position: absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:5px; z-index:1;
+  }
+  .menu-num { font-family:"Orbitron",monospace; font-size:0.52rem; letter-spacing:0.2em; color:var(--accent1); opacity:0.7; }
+  .menu-label {
+    font-family:"Bebas Neue",sans-serif; font-size:1.05rem; letter-spacing:0.06em;
+    text-align:center; transition:color 0.3s;
+  }
+  .gallery-menu-item:hover .menu-label, .gallery-menu-item.active .menu-label { color:var(--accent2); }
+  .menu-count { font-size:0.6rem; color:var(--text-dim); letter-spacing:0.1em; }
+  .menu-bar { position:absolute; bottom:0; left:0; width:0; height:2px; background:var(--accent2); transition:width 0.4s ease; }
+  .gallery-menu-item:hover .menu-bar, .gallery-menu-item.active .menu-bar { width:100%; }
+
+  /* Category cards */
+  .category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .category-card {
+    padding: 36px 28px; border: 1px solid rgba(255,255,255,0.06);
+    background: var(--surface); position: relative; overflow: hidden;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+    transition: border-color 0.3s, box-shadow 0.3s;
+    cursor: none;
+  }
+  .category-card:hover { border-color: var(--card-accent); box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+  .category-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--card-accent); }
+  .card-num { font-family: 'Orbitron', monospace; font-size: 0.65rem; color: var(--card-accent); letter-spacing: 0.2em; margin-bottom: 20px; opacity: 0.7; }
+  .card-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; margin-bottom: 10px; }
+  .card-desc { font-size: 0.8rem; color: var(--text-dim); line-height: 1.7; }
+  .card-arrow { position: absolute; bottom: 24px; right: 24px; font-size: 1.2rem; color: var(--card-accent); opacity: 0; transition: opacity 0.3s, transform 0.3s; }
+  .category-card:hover .card-arrow { opacity: 1; transform: translate(4px, -4px); }
+
+  /* About */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+  .info-text h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; margin-bottom: 20px; line-height: 1.1; }
+  .info-text p { color: var(--text-dim); line-height: 1.8; font-size: 0.9rem; margin-bottom: 16px; }
+  .info-highlight { color: var(--accent2); font-weight: 700; }
+  .info-tags { margin-top: 32px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .info-tag { padding: 10px 18px; border: 1px solid; font-size: 0.72rem; letter-spacing: 0.1em; }
+  .info-hp { margin-top: 32px; display: flex; gap: 12px; flex-wrap: wrap; justify-content:center }
+  .info-hpes { padding: 10px 18px; border: 1px solid; font-size: 0.72rem; letter-spacing: 0.1em; }
+
+
+
+  /* Hex grid */
+  .hex-grid { display: grid; grid-template-columns: repeat(6, 50px); gap: 6px; }
+  .hex {
+    width: 44px; height: 44px;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.55rem; letter-spacing: 0.04em; font-weight: 700; text-align: center;
+    animation: hexPulse calc(2s + var(--delay, 0s)) ease-in-out infinite alternate;
+  }
+  @keyframes hexPulse {
+    from { opacity: 0.3; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1.06); }
+  }
+
+  /* Footer */
+  footer {
+    position: relative; z-index: 10;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 60px 48px; text-align: center;
+    font-size: 0.75rem; color: var(--text-dim); letter-spacing: 0.1em;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .f-logo {
+    font-family: 'Orbitron', monospace; font-size: 1.5rem;
+    color: var(--accent2); margin-bottom: 16px;
+    text-shadow: 0 0 30px var(--accent2);
+  }
+
+  /* Scroll reveal */
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── TOP 버튼 */
+  #topBtn {
+    position: fixed; bottom: 36px; right: 36px; z-index: 200;
+    width: 48px; height: 48px;
+    background: rgba(10,10,18,0.85);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    font-size: 1.1rem;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
+    cursor: none;
+    clip-path: polygon(6px 0%,100% 0%,100% calc(100% - 6px),calc(100% - 6px) 100%,0% 100%,0% 6px);
+    opacity: 0; visibility: hidden;
+    transform: translateY(16px);
+    transition: opacity 0.35s, visibility 0.35s, transform 0.35s, box-shadow 0.3s, border-color 0.3s;
+    backdrop-filter: blur(8px);
+  }
+  #topBtn.visible { opacity: 1; visibility: visible; transform: translateY(0); }
+  #topBtn:hover { border-color: var(--accent1); color: var(--accent1); box-shadow: 0 0 24px rgba(233,30,140,0.45); background: rgba(233,30,140,0.08); }
+  #topBtn .top-arrow { font-size: 1rem; line-height: 1; }
+  #topBtn .top-label { font-family: 'Orbitron', monospace; font-size: 0.38rem; letter-spacing: 0.15em; line-height: 1; }
+
+  /* Loading screen */
+  #loader {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
+  #loader.hidden { opacity: 0; visibility: hidden; }
+  .loader-logo { font-family: 'Orbitron', monospace; font-size: 1.5rem; color: var(--accent2); letter-spacing: 0.3em; text-shadow: 0 0 30px var(--accent2); margin-bottom: 40px; }
+  .loader-bar-wrap { width: 280px; height: 2px; background: rgba(255,255,255,0.1); overflow: hidden; }
+  .loader-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent1), var(--accent2)); box-shadow: 0 0 10px var(--accent2); transition: width 0.1s linear; }
+  .loader-text { margin-top: 20px; font-family: 'Orbitron', monospace; font-size: 0.6rem; letter-spacing: 0.2em; color: var(--text-dim); }
+  .loader-num { font-family: 'Orbitron', monospace; font-size: 3rem; color: var(--accent1); margin-top: 12px; text-shadow: 0 0 20px var(--accent1); }
+
+  /* ── 태블릿 (768px 이하) ── */
+  @media (max-width: 768px) {
+    /* 커서 숨김 해제 (터치 기기) */
+    body { cursor: auto; }
+    #cursor, #cursor-ring { display: none; }
+
+    /* 네비 */
+    nav { padding: 14px 20px; }
+    .nav-links { display: none; }
+
+    /* 섹션 패딩 */
+    section { padding: 56px 20px; }
+
+    /* 히어로 */
+    .hero { padding: 100px 20px 50px; }
+    .hero-circle { width: 320px; height: 320px; }
+    .corner { width: 48px; height: 48px; }
+    .corner-tl { top: 60px; left: 16px; }
+    .corner-tr { top: 60px; right: 16px; }
+    .corner-bl { bottom: 24px; left: 16px; }
+    .corner-br { bottom: 24px; right: 16px; }
+    .hero-sub { font-size: 0.78rem; letter-spacing: 0.04em; }
+    .hero-cta { gap: 10px; }
+    .btn-primary, .btn-secondary { padding: 12px 24px; font-size: 0.68rem; }
+
+    /* 통계 바 */
+    .stats-bar { flex-wrap: wrap; justify-content: center; }
+    .stat { min-width: 110px; max-width: 50%; padding: 18px 12px; }
+    .stat-num { font-size: 1.8rem; }
+    .stat-label { font-size: 0.6rem; }
+
+    /* 섹션 헤더 */
+    .section-title { font-size: 2rem; }
+    .section-num { font-size: 0.6rem; }
+
+    /* 갤러리 뷰어 */
+    .gallery-viewer { height: 260px; }
+    .viewer-title { font-size: 1.6rem; }
+    .viewer-info { padding: 32px 16px 16px; }
+    .viewer-arrow { width: 36px; height: 36px; font-size: 0.75rem; }
+    .gallery-menu { grid-template-columns: repeat(2,1fr); gap: 8px; }
+    .gallery-menu-item { height: 88px; }
+    .menu-label { font-size: 0.9rem; }
+
+    /* 수상 */
+    .award-grid { grid-template-columns: 1fr; }
+    .award-filter { gap: 6px; }
+    .award-filter-btn { padding: 6px 14px; font-size: 0.6rem; }
+
+    /* 커리큘럼 */
+    .cur-tabs { overflow-x: auto; }
+    .cur-tab { min-width: 80px; padding: 14px 8px 12px; }
+    .cur-tab-grade { font-size: 1.1rem; }
+    .cur-tab-theme { font-size: 0.58rem; }
+    .cur-panels { padding: 20px 16px; }
+    .cur-skill-row { grid-template-columns: 72px 1fr 28px; font-size: 0.65rem; }
+
+    /* About */
+    .info-grid { grid-template-columns: 1fr; gap: 28px; }
+    .info-text h2 { font-size: 2rem; }
+    .info-tags { gap: 8px; }
+    .info-tag { font-size: 0.65rem; padding: 8px 12px; }
+    .hex-grid { grid-template-columns: repeat(4, 44px); }
+
+    /* 푸터 */
+    footer { padding: 40px 20px; }
+    .f-logo { font-size: 1.1rem; }
+    .info-hp { flex-direction: column; align-items: center; }
+
+    /* TOP 버튼 */
+    #topBtn { bottom: 20px; right: 16px; width: 40px; height: 40px; }
+  }
+
+  /* ── 소형 모바일 (480px 이하) ── */
+  @media (max-width: 480px) {
+    .gallery-viewer { height: 220px; }
+    .gallery-menu { grid-template-columns: repeat(2,1fr); }
+    .viewer-title { font-size: 1.3rem; }
+    .stat { min-width: 100px; }
+    .award-card-inner { padding: 16px 16px 14px; }
+    .award-title { font-size: 1.15rem; }
+    .hex-grid { grid-template-columns: repeat(3, 44px); }
+  }
+/* ── CURRICULUM ── */
+.curriculum-wrap {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    clip-path: polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px));
+    overflow: hidden;
+  }
+ 
+  .cur-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .cur-tab {
+    flex: 1; padding: 18px 12px 16px;
+    background: none; border: none; border-bottom: 2px solid transparent;
+    cursor: none; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transition: all 0.25s; position: relative; bottom: -1px;
+  }
+  .cur-tab:hover { background: rgba(255,255,255,0.03); }
+  .cur-tab-grade {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem;
+    letter-spacing: 0.08em; color: var(--text-dim); transition: color 0.25s;
+  }
+  .cur-tab-theme {
+    font-size: 0.68rem; letter-spacing: 0.12em; color: var(--text-dim);
+    transition: color 0.25s;
+  }
+  .cur-tab.active { border-bottom-color: var(--grade-color,var(--accent2)); }
+  .cur-tab.active .cur-tab-grade { color: var(--text); }
+  .cur-tab.active .cur-tab-theme { color: var(--grade-color,var(--accent2)); }
+  .cur-tab:nth-child(1) { --grade-color: var(--accent2); }
+  .cur-tab:nth-child(2) { --grade-color: #a855f7; }
+  .cur-tab:nth-child(3) { --grade-color: var(--accent1); }
+ 
+  .cur-panels { padding: 28px 32px; }
+  .cur-panel { display: none; }
+  .cur-panel.active { display: block; }
+ 
+  .cur-theme-badge {
+    display: inline-block; margin-bottom: 20px;
+    padding: 6px 16px; border-radius: 2px;
+    font-size: 0.72rem; letter-spacing: 0.1em;
+    color: var(--grade-color); border: 1px solid rgba(var(--grade-rgb),0.3);
+    background: rgba(var(--grade-rgb),0.06);
+  }
+ 
+  .cur-subjects { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+  .cur-subject { display: grid; grid-template-columns: 3px 1fr; gap: 0 12px; cursor: none; }
+  .cur-subject-bar {
+    border-radius: 2px; background: var(--grade-color); opacity: 0.35;
+    transition: opacity 0.2s;
+  }
+  .cur-subject:hover .cur-subject-bar,
+  .cur-subject.open .cur-subject-bar { opacity: 1; }
+ 
+  .cur-subject-inner {
+    background: rgba(255,255,255,0.03); border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden; transition: border-color 0.2s;
+  }
+  .cur-subject:hover .cur-subject-inner,
+  .cur-subject.open .cur-subject-inner { border-color: rgba(var(--grade-rgb),0.4); }
+ 
+  .cur-subject-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; gap: 8px;
+  }
+  .cur-subject-name { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+  .cur-subject-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .cur-subject-tag {
+    font-size: 0.65rem; letter-spacing: 0.1em;
+    color: var(--grade-color); border: 1px solid rgba(var(--grade-rgb),0.3);
+    padding: 2px 8px; border-radius: 2px; background: rgba(var(--grade-rgb),0.08);
+  }
+  .cur-chevron { font-size: 0.6rem; color: var(--text-dim); transition: transform 0.2s; }
+  .cur-subject.open .cur-chevron { transform: rotate(180deg); }
+ 
+  .cur-subject-detail {
+    display: none; padding: 0 14px 14px;
+    font-size: 0.78rem; color: var(--text-dim); line-height: 1.7;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .cur-subject.open .cur-subject-detail { display: block; padding-top: 12px; }
+ 
+  .cur-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .cur-kw {
+    font-size: 0.65rem; padding: 3px 9px;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-dim); border-radius: 2px;
+    background: rgba(255,255,255,0.03);
+  }
+ 
+  .cur-skills {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 20px; margin-bottom: 0;
+  }
+  .cur-skills-label {
+    font-family: 'Orbitron', monospace; font-size: 0.6rem;
+    letter-spacing: 0.2em; color: var(--text-dim); margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .cur-skill-row {
+    display: grid; grid-template-columns: 90px 1fr 32px;
+    align-items: center; gap: 10px;
+    font-size: 0.72rem; color: var(--text-dim); margin-bottom: 8px;
+  }
+  .cur-bar-track {
+    height: 3px; background: rgba(255,255,255,0.08);
+    border-radius: 2px; overflow: hidden;
+  }
+  .cur-bar-fill {
+    height: 100%; border-radius: 2px;
+    background: var(--grade-color); width: 0%;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+  .cur-bar-pct { font-family: 'Orbitron', monospace; font-size: 0.6rem; text-align: right; }
+  .cur-flow-arrow {
+    text-align: center; margin-top: 20px; padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.72rem; color: var(--text-dim); letter-spacing: 0.1em;
+    opacity: 0.6;
+  }
+
+/* ── AWARD SECTION ── */
+  .award-wrap {
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  /* 필터 탭 */
+  .award-filter {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .award-filter-btn {
+    padding: 7px 20px; border: 1px solid rgba(255,255,255,0.1);
+    background: transparent; color: var(--text-dim);
+    font-family: 'Orbitron', monospace; font-size: 0.65rem; letter-spacing: 0.15em;
+    cursor: none; transition: all 0.25s;
+    clip-path: polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  }
+  .award-filter-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+  .award-filter-btn.active {
+    background: linear-gradient(135deg,#ffe566,#ff9900);
+    border-color: transparent; color: #0a0a12; font-weight: 700;
+    box-shadow: 0 0 18px rgba(255,229,102,0.4);
+  }
+  /* 수상 카드 그리드 */
+  .award-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+  }
+  .award-card {
+    position: relative; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--surface);
+    clip-path: polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+    cursor: none;
+    animation: cardIn 0.4s ease both;
+  }
+  @keyframes cardIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+  .award-card:hover {
+    border-color: var(--award-color, var(--accent3));
+    box-shadow: 0 0 28px rgba(0,0,0,0.5), 0 0 12px rgba(255,229,102,0.12);
+    transform: translateY(-3px);
+  }
+  .award-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: var(--award-color, var(--accent3));
+  }
+  .award-card-inner { padding: 20px 22px 18px; }
+  .award-rank {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'Orbitron', monospace; font-size: 0.6rem; letter-spacing: 0.2em;
+    color: var(--award-color, var(--accent3));
+    margin-bottom: 12px;
+  }
+  .award-rank-icon { font-size: 1rem; }
+  .award-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.45rem;
+    letter-spacing: 0.04em; margin-bottom: 6px; line-height: 1.15;
+  }
+  .award-student {
+    font-size: 0.78rem; color: var(--text-dim); margin-bottom: 10px;
+  }
+  .award-student strong { color: var(--text); }
+  .award-meta {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+    padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .award-tag {
+    font-size: 0.62rem; padding: 3px 10px; letter-spacing: 0.1em;
+    border: 1px solid rgba(255,229,102,0.25);
+    color: var(--text-dim); border-radius: 2px;
+    background: rgba(255,229,102,0.05);
+  }
+  .award-tag.type-out { border-color: rgba(233,30,140,0.25); background: rgba(233,30,140,0.05); }
+  .award-tag.type-in  { border-color: rgba(0,212,255,0.25);  background: rgba(0,212,255,0.05);  }
+  .award-empty {
+    text-align:center; padding:60px; color:var(--text-dim);
+    font-size:0.85rem; letter-spacing:0.1em;
+    grid-column: 1 / -1;
+  }
+
+
+
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- TOP 버튼 -->
+<button id="topBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="맨 위로">
+  <span class="top-arrow">▲</span>
+  <span class="top-label">TOP</span>
+</button>
+
+<!-- Loader -->
+<div id="loader">
+  <div class="loader-logo">DY-GRAPHIC SOFTWARE.</div>
+  <div class="loader-num" id="loaderNum">0</div>
+  <div class="loader-bar-wrap"><div class="loader-bar" id="loaderBar"></div></div>
+  <div class="loader-text" id="loaderText">INITIALIZING...</div>
+</div>
+
+<div class="bg-grid"></div>
+<div class="scanlines"></div>
+<div class="particles" id="particles"></div>
+
+<!-- Nav -->
+<nav>
+  <div class="logo">GRAPHIC · PORTFOLIO</div>
+  <ul class="nav-links">
+    <li><a href="#gallery">작품갤러리</a></li>
+    <li><a href="#category">분야소개</a></li>
+    <li><a href="#about">학과안내</a></li>
+    <li><a href="#contact">입학문의</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-circle"></div>
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+  <div class="tag">★ GRAPHIC DESIGN DEPARTMENT PORTFOLIO</div>
+  <h1 class="hero-title">
+    <span class="line1 glitch" data-text="상상을 현실로">상상을 현실로</span>
+    <span class="line2">GRAPHIC WORKS</span>
+  </h1>
+  <p class="hero-sub">◈ 그래픽소프트웨어과 학생들의 창작 세계로 초대합니다 ◈</p>
+  <div class="hero-cta">
+    <button class="btn-primary" onclick="document.getElementById('gallery').scrollIntoView({behavior:'smooth'})">작품 감상하기</button>
+    <button class="btn-secondary" onclick="document.getElementById('about').scrollIntoView({behavior:'smooth'})">학과 알아보기</button>
+  </div>
+</div>
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" data-target="127">0</div><div class="stat-label">TOTAL WORKS</div></div>
+  <div class="stat"><div class="stat-num" data-target="77">0</div><div class="stat-label">STUDENTS</div></div>
+  <div class="stat"><div class="stat-num" data-target="2">0</div><div class="stat-label">GRADE LEVELS</div></div>
+  <div class="stat"><div class="stat-num" data-target="3">0</div><div class="stat-label">AWARD WINS</div></div>
+</div>
+
+<!-- Gallery -->
+<section id="gallery">
+  <div class="section-header reveal">
+    <span class="section-num">// 01</span>
+    <h2 class="section-title">STUDENT WORKS</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="gallery-showcase reveal">
+
+    <!-- 메인 뷰어 -->
+    <div class="gallery-viewer">
+      <div class="viewer-track" id="viewerTrack"></div>
+      <div class="viewer-counter"><span id="viewerCur">1</span> / <span id="viewerTotal">0</span></div>
+      <button class="viewer-arrow prev" id="btnPrev" onclick="galleryPrev()">&#9664;</button>
+      <button class="viewer-arrow next" id="btnNext" onclick="galleryNext()">&#9654;</button>
+      <div class="viewer-dots" id="viewerDots"></div>
+    </div>
+
+    <!-- 카테고리 메뉴 -->
+    <div class="gallery-menu" id="galleryMenu"></div>
+
+  </div>
+</section>
+
+
+
+<!-- Award -->
+<section id="award">
+  <div class="section-header reveal">
+    <span class="section-num">// 02</span>
+    <h2 class="section-title">AWARD WORKS</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="award-wrap reveal">
+    <!-- 필터 -->
+    <div class="award-filter">
+      <button class="award-filter-btn active" onclick="filterAward('전체',this)">전체</button>
+      <button class="award-filter-btn" onclick="filterAward('교내',this)">🏫 교내</button>
+      <button class="award-filter-btn" onclick="filterAward('교외',this)">🏆 교외</button>
+    </div>
+    <!-- 카드 그리드 -->
+    <div class="award-grid" id="awardGrid"></div>
+  </div>
+</section>
+
+
+<!-- Curriculum -->
+<section id="category">
+  <div class="section-header reveal">
+    <span class="section-num">// 03</span>
+    <h2 class="section-title">CURRICULUM</h2>
+    <div class="section-line"></div>
+  </div>
+ 
+  <div class="curriculum-wrap reveal">
+ 
+    <!-- 학년 탭 -->
+    <div class="cur-tabs">
+      <button class="cur-tab active" data-idx="0" onclick="switchGrade(0,this)">
+        <span class="cur-tab-grade">1학년</span>
+        <span class="cur-tab-theme">2D 기초</span>
+      </button>
+      <button class="cur-tab" data-idx="1" onclick="switchGrade(1,this)">
+        <span class="cur-tab-grade">2학년</span>
+        <span class="cur-tab-theme">2D 응용</span>
+      </button>
+      <button class="cur-tab" data-idx="2" onclick="switchGrade(2,this)">
+        <span class="cur-tab-grade">3학년</span>
+        <span class="cur-tab-theme">디지털 융합</span>
+      </button>
+    </div>
+ 
+    <!-- 패널들 -->
+    <div class="cur-panels">
+ 
+      <!-- 1학년 -->
+      <div class="cur-panel active" id="cur-panel-0" style="--grade-color:#00d4ff;--grade-rgb:0,212,255">
+        <div class="cur-theme-badge">✦ 2D 기초 — 드로잉·조형·디자인의 기본기를 다집니다</div>
+        <div class="cur-subjects">
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">드로잉 · 크로키</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">손 드로잉</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                관찰 드로잉, 크로키, 인체 기초 등 손으로 그리는 기초 표현 능력을 기릅니다. 모든 디지털 작업의 바탕이 되는 핵심 역량입니다.
+                <div class="cur-keywords"><span class="cur-kw">정물 드로잉</span><span class="cur-kw">크로키</span><span class="cur-kw">인체 비례</span><span class="cur-kw">선 드로잉</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">조형</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">조형 원리</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                점·선·면, 형태와 공간, 균형과 리듬 등 시각 조형의 기본 원리를 이해하고 실습합니다.
+                <div class="cur-keywords"><span class="cur-kw">점·선·면</span><span class="cur-kw">형태</span><span class="cur-kw">공간감</span><span class="cur-kw">균형</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">색채 일반</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">색채론</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                색의 3속성(색상·명도·채도), 배색 이론, 감성적 색채 활용 등 색을 다루는 기초 이론을 배웁니다.
+                <div class="cur-keywords"><span class="cur-kw">색상환</span><span class="cur-kw">명도·채도</span><span class="cur-kw">배색</span><span class="cur-kw">색채 심리</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">디자인 일반</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">이론</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                디자인의 요소와 원리, 디자인 사조와 역사, 커뮤니케이션 디자인의 개념을 이해합니다.
+                <div class="cur-keywords"><span class="cur-kw">디자인 원리</span><span class="cur-kw">디자인 역사</span><span class="cur-kw">타이포그래피</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">컴퓨터 그래픽</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">디지털 입문</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                포토샵, 일러스트레이터 등 그래픽 툴 기초 사용법을 익히고 디지털 드로잉을 시작합니다.
+                <div class="cur-keywords"><span class="cur-kw">Photoshop</span><span class="cur-kw">Illustrator</span><span class="cur-kw">레이어</span><span class="cur-kw">벡터·래스터</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">발명과 디자인</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">창의</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                창의적 발상법과 디자인 씽킹을 통해 문제 해결형 디자인의 기초 개념을 배웁니다.
+                <div class="cur-keywords"><span class="cur-kw">디자인 씽킹</span><span class="cur-kw">아이디에이션</span><span class="cur-kw">프로토타입</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cur-skills">
+          <div class="cur-skills-label">습득 역량</div>
+          <div class="cur-skill-row"><span>손 드로잉</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="85"></div></div><span class="cur-bar-pct">85</span></div>
+          <div class="cur-skill-row"><span>색채·조형</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="80"></div></div><span class="cur-bar-pct">80</span></div>
+          <div class="cur-skill-row"><span>디지털 툴</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="50"></div></div><span class="cur-bar-pct">50</span></div>
+          <div class="cur-skill-row"><span>창의 발상</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="60"></div></div><span class="cur-bar-pct">60</span></div>
+        </div>
+        <div class="cur-flow-arrow">↓ 기초를 바탕으로 2학년 응용 과정으로</div>
+      </div>
+ 
+      <!-- 2학년 -->
+      <div class="cur-panel" id="cur-panel-1" style="--grade-color:#a855f7;--grade-rgb:168,85,247">
+        <div class="cur-theme-badge">✦ 2D 응용 — 기초를 심화하고 모션·캐릭터로 확장합니다</div>
+        <div class="cur-subjects">
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">컴퓨터 그래픽 심화 실습</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">디지털 심화</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                1학년에서 배운 그래픽 툴을 심화하여 포스터, 편집, 합성 등 실무 수준의 그래픽 작업을 실습합니다.
+                <div class="cur-keywords"><span class="cur-kw">합성·편집</span><span class="cur-kw">포스터 디자인</span><span class="cur-kw">브랜딩</span><span class="cur-kw">인포그래픽</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">미디어콘텐츠 일반</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">미디어</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                영상, 사진, 디지털 미디어의 기본 개념을 이해하고 콘텐츠 제작의 기초 원리를 익힙니다. 이 과목에서 모션 그래픽을 처음 시작합니다.
+                <div class="cur-keywords"><span class="cur-kw">영상 기초</span><span class="cur-kw">편집</span><span class="cur-kw">모션 그래픽 입문</span><span class="cur-kw">스토리보드</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">캐릭터 제작</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">캐릭터</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                오리지널 캐릭터를 기획부터 디자인까지 완성합니다. 세계관, 설정 문서, 다양한 앵글의 캐릭터 시트를 제작합니다.
+                <div class="cur-keywords"><span class="cur-kw">캐릭터 디자인</span><span class="cur-kw">세계관 기획</span><span class="cur-kw">표정·포즈</span><span class="cur-kw">컬러링</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cur-skills">
+          <div class="cur-skills-label">습득 역량</div>
+          <div class="cur-skill-row"><span>그래픽 실무</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="80"></div></div><span class="cur-bar-pct">80</span></div>
+          <div class="cur-skill-row"><span>캐릭터 디자인</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="75"></div></div><span class="cur-bar-pct">75</span></div>
+          <div class="cur-skill-row"><span>모션 그래픽</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="40"></div></div><span class="cur-bar-pct">40</span></div>
+          <div class="cur-skill-row"><span>영상 편집</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="45"></div></div><span class="cur-bar-pct">45</span></div>
+        </div>
+        <div class="cur-flow-arrow">↓ 응용 역량을 기반으로 3학년 융합 과정으로</div>
+      </div>
+ 
+      <!-- 3학년 -->
+      <div class="cur-panel" id="cur-panel-2" style="--grade-color:#e91e8c;--grade-rgb:233,30,140">
+        <div class="cur-theme-badge">✦ 디지털 융합 — VR/AR · 모션 · UX/UI · 앱콘텐츠를 완성합니다</div>
+        <div class="cur-subjects">
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">VR/AR 콘텐츠 제작</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">가상·증강현실</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                가상현실(VR)·증강현실(AR) 콘텐츠의 기획, 에셋 제작, 구현까지 전 과정을 경험합니다. 3D 오브젝트와 공간 디자인을 다룹니다.
+                <div class="cur-keywords"><span class="cur-kw">3D 모델링</span><span class="cur-kw">공간 디자인</span><span class="cur-kw">Unity 기초</span><span class="cur-kw">AR 필터</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">모션 그래픽 제작</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">영상·애니메이션</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                2학년에서 시작한 모션 그래픽을 심화하여 타이틀 시퀀스, 인포모션, 캐릭터 애니메이션 등을 완성합니다.
+                <div class="cur-keywords"><span class="cur-kw">After Effects</span><span class="cur-kw">타이틀 시퀀스</span><span class="cur-kw">인포모션</span><span class="cur-kw">리깅</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">스마트 문화 앱 콘텐츠 · UX/UI</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">UX/UI</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                앱 서비스 기획부터 와이어프레임, 프로토타입까지 UX/UI 설계 전 과정을 실습합니다. 사용자 중심 디자인 사고를 기릅니다.
+                <div class="cur-keywords"><span class="cur-kw">Figma</span><span class="cur-kw">와이어프레임</span><span class="cur-kw">프로토타입</span><span class="cur-kw">UT</span><span class="cur-kw">앱 기획</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cur-subject" onclick="toggleCurSubject(this)">
+            <div class="cur-subject-bar"></div>
+            <div class="cur-subject-inner">
+              <div class="cur-subject-head">
+                <span class="cur-subject-name">융합 콘텐츠 제작</span>
+                <span class="cur-subject-right"><span class="cur-subject-tag">졸업작품</span><span class="cur-chevron">▼</span></span>
+              </div>
+              <div class="cur-subject-detail">
+                3년간의 역량을 집대성한 개인 졸업 작품을 제작합니다. 장르와 매체를 자유롭게 선택하여 포트폴리오 완성작을 만들어냅니다.
+                <div class="cur-keywords"><span class="cur-kw">졸업작품</span><span class="cur-kw">포트폴리오</span><span class="cur-kw">전시 기획</span><span class="cur-kw">브랜딩</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cur-skills">
+          <div class="cur-skills-label">습득 역량</div>
+          <div class="cur-skill-row"><span>모션·영상</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="85"></div></div><span class="cur-bar-pct">85</span></div>
+          <div class="cur-skill-row"><span>VR/AR</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="70"></div></div><span class="cur-bar-pct">70</span></div>
+          <div class="cur-skill-row"><span>UX/UI</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="80"></div></div><span class="cur-bar-pct">80</span></div>
+          <div class="cur-skill-row"><span>융합·기획</span><div class="cur-bar-track"><div class="cur-bar-fill" data-val="90"></div></div><span class="cur-bar-pct">90</span></div>
+        </div>
+      </div>
+ 
+    </div><!-- /cur-panels -->
+  </div><!-- /curriculum-wrap -->
+</section>
+ 
+
+<!-- About -->
+<section id="about">
+  <div class="section-header reveal">
+    <span class="section-num">// 04</span>
+    <h2 class="section-title">ABOUT US</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="info-grid reveal">
+    <div class="info-text">
+      <h2>창작의 즐거움을<br><span class="info-highlight">함께 키워갑니다</span></h2>
+      <p>그래픽소프트웨어과는 예술적 감성과 디자인 실력을 함께 키울 수 있는 전문 과정입니다. 입학 전 그림 실력에 상관없이 열정과 창작에 대한 의지만 있다면 충분합니다.</p>
+      <p>졸업 후에는 예술대학 진학, 디자인 전문대학 진학, 웹툰 작가, 게임 원화가 등 다양한 진로를 선택할 수 있습니다.</p>
+      <div class="info-tags">
+        <div class="info-tag" style="border-color:rgba(0,212,255,0.4); color:var(--accent2)">✦ 소규모 정예 교육</div>
+        <div class="info-tag" style="border-color:rgba(0,212,255,0.4); color:var(--accent2)">✦ 전문 장비 완비</div>
+        <div class="info-tag" style="border-color:rgba(0,212,255,0.4); color:var(--accent2)">✦ 진로 맞춤 지도</div>
+      </div>
+    </div>
+    <div class="info-visual" style="display:flex;align-items:center;justify-content:center;">
+      <div class="hex-grid" id="hexGrid"></div>
+    </div>
+  </div>
+</section>
+
+<footer id="contact">
+  <div class="f-logo">
+    <p>DYGR</p>
+    <p> · </p>
+    <p>PORTFOLIO</p>
+  </div>
+  <p><p>덕영고등학교 그래픽소프트웨과</p></p>
+  <p style="margin-top:8px; font-size:0.65rem; color:var(--text-dim)">입학 문의 및 방문 안내는 학교 홈페이지를 참고해 주세요</p>
+  <div class="info-hp">
+    <a href="https://dukyoung-h.goeyi.kr/dukyoung-h/main.do" target="new">
+    <div class="info-hpes" style="border-color:rgba(0,212,255,0.4); color:var(--accent2)">홈페이지 바로가기</div>
+    </a>
+  </div>
+  <br>
+  <p style="margin-top:8px; font-size:0.65rem; color:var(--text-dim)">031-329-4300</p>
+  <p style="margin-top:8px; font-size:0.65rem; color:var(--text-dim)">031-329-4338</p>
+</footer>
+
+<script>
+// Loader
+(function() {
+  const loader = document.getElementById('loader');
+  const bar = document.getElementById('loaderBar');
+  const numEl = document.getElementById('loaderNum');
+  const textEl = document.getElementById('loaderText');
+  const msgs = ['INITIALIZING...', 'LOADING ASSETS...', 'RENDERING SCENE...', 'ALMOST READY...'];
+  let pct = 0;
+  const iv = setInterval(() => {
+    pct += Math.random() * 7 + 2;
+    if (pct >= 100) { pct = 100; clearInterval(iv); }
+    bar.style.width = pct + '%';
+    numEl.textContent = Math.floor(pct);
+    textEl.textContent = msgs[Math.min(3, Math.floor(pct / 25))];
+    if (pct >= 100) setTimeout(() => loader.classList.add('hidden'), 400);
+  }, 55);
+})();
+
+// Cursor
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top = e.clientY + 'px';
+  setTimeout(() => {
+    ring.style.left = e.clientX + 'px';
+    ring.style.top = e.clientY + 'px';
+  }, 80);
+});
+document.querySelectorAll('button, a, .gallery-item, .category-card').forEach(el => {
+  el.addEventListener('mouseenter', cursorOn);
+  el.addEventListener('mouseleave', cursorOff);
+});
+
+// Particles
+(function() {
+  const container = document.getElementById('particles');
+  const colors = ['#e91e8c','#00d4ff','#ffe566','#a855f7'];
+  for (let i = 0; i < 28; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const s = 1 + Math.random() * 3;
+    p.style.cssText = `
+      left:${Math.random()*100}%;
+      --dx:${(Math.random()-0.5)*200}px;
+      animation-duration:${8+Math.random()*12}s;
+      animation-delay:${Math.random()*10}s;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      width:${s}px; height:${s}px;
+      box-shadow:0 0 6px currentColor;
+    `;
+    container.appendChild(p);
+  }
+})();
+
+// Hex grid
+(function() {
+  const hexData = [
+    {t:'일러스트',bg:'#e91e8c33',c:'#e91e8c',d:0},
+    {t:'포스터',bg:'#00d4ff33',c:'#00d4ff',d:0.3},
+    {t:'웹툰',bg:'#ffe56633',c:'#ffe566',d:0.6},
+    {t:'UI/UX',bg:'#a855f733',c:'#a855f7',d:0.9},
+    {t:'영상',bg:'#22c55e33',c:'#22c55e',d:1.2},
+    {t:'브랜딩',bg:'#f9731633',c:'#f97316',d:1.5},
+    {t:'타이포',bg:'#00d4ff33',c:'#00d4ff',d:0.2},
+    {t:'콘셉트',bg:'#e91e8c33',c:'#e91e8c',d:0.5},
+    {t:'편집',bg:'#ffe56633',c:'#ffe566',d:0.8},
+    {t:'모션',bg:'#a855f733',c:'#a855f7',d:1.1},
+    {t:'캐릭터',bg:'#22c55e33',c:'#22c55e',d:1.4},
+    {t:'원화',bg:'#f9731633',c:'#f97316',d:0.1},
+  ];
+  const grid = document.getElementById('hexGrid');
+  hexData.forEach(h => {
+    const el = document.createElement('div');
+    el.className = 'hex';
+    el.style.cssText = `background:${h.bg};color:${h.c};--delay:${h.d}s;`;
+    el.textContent = h.t;
+    grid.appendChild(el);
+  });
+})();
+
+// ════════════════════════════════════════════════════════════
+//  ★ Apps Script 배포 URL을 여기에 붙여넣으세요 ★
+//  구글 시트 → 확장 프로그램 → Apps Script → 배포 → 웹 앱 URL
+// ════════════════════════════════════════════════════════════
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNwhTtWbHD9XIFYr_dtS_-vmlDg_aU_50ctvxYUIc2lhffuvMM1SEF7AZtljJXcSiu/exec';
+
+// 카테고리별 색상·그라디언트 설정 (순서 고정)
+const CAT_STYLES = {
+  '컴퓨터그래픽': { grad: 'linear-gradient(135deg,#e91e8c,#c2186e)', accent: '#e91e8c' },
+  '드로잉':       { grad: 'linear-gradient(135deg,#00d4ff,#0080ff)', accent: '#00d4ff' },
+  '캐릭터 디자인':{ grad: 'linear-gradient(135deg,#ffe566,#ff9900)', accent: '#ffe566' },
+  '포스터 디자인':{ grad: 'linear-gradient(135deg,#a855f7,#6366f1)', accent: '#a855f7' },
+};
+const CAT_ORDER = ['컴퓨터그래픽', '드로잉', '캐릭터 디자인', '포스터 디자인'];
+
+// 시트 연결 안 됐을 때 보여줄 샘플 데이터
+const FALLBACK_DATA = [
+  { cat:'컴퓨터그래픽', ...CAT_STYLES['컴퓨터그래픽'],
+    desc:'포토샵, 일러스트레이터를 활용한 디지털 그래픽 수업 과제',
+    slides:[
+      { title:'디지털 합성',   sub:'3학년 · 포토샵 합성 작업',      img:'', student:'홍길동' },
+      { title:'타입페이스',    sub:'2학년 · 글꼴 디자인 프로젝트',   img:'', student:'김민서' },
+      { title:'패키지 디자인', sub:'3학년 · 제품 패키지 디자인',     img:'', student:'이준혁' },
+    ]},
+  { cat:'드로잉', ...CAT_STYLES['드로잉'],
+    desc:'크로키·투시·수채화·디지털 페인팅 등 드로잉 기초 수업',
+    slides:[
+      { title:'인체 크로키',   sub:'1학년 · 인체 기초 드로잉',       img:'', student:'박소연' },
+      { title:'풍경 스케치',   sub:'1학년 · 야외 사생 드로잉',        img:'', student:'최유진' },
+      { title:'디지털 페인팅', sub:'2학년 · 클립스튜디오 페인팅',     img:'', student:'정하은' },
+    ]},
+  { cat:'캐릭터 디자인', ...CAT_STYLES['캐릭터 디자인'],
+    desc:'오리지널 캐릭터 기획·설정·디자인 작업',
+    slides:[
+      { title:'오리지널 캐릭터',  sub:'2학년 · OC 디자인 시트',       img:'', student:'강지호' },
+      { title:'게임 캐릭터',      sub:'3학년 · 졸업작품 캐릭터',       img:'', student:'윤서준' },
+      { title:'이모티콘 디자인',  sub:'2학년 · 카카오 이모티콘 기획',  img:'', student:'임채원' },
+    ]},
+  { cat:'포스터 디자인', ...CAT_STYLES['포스터 디자인'],
+    desc:'타이포그래피와 레이아웃을 활용한 포스터·편집 디자인',
+    slides:[
+      { title:'타이포 포스터', sub:'2학년 · 한글 타이포그래피',        img:'', student:'오현우' },
+      { title:'영화 포스터',   sub:'3학년 · 리메이크 영화 포스터',     img:'', student:'홍길동' },
+      { title:'행사 포스터',   sub:'3학년 · 졸업 작품전 포스터',       img:'', student:'김민서' },
+    ]},
+];
+
+let GALLERY_DATA = FALLBACK_DATA;
+let gCat = 0;
+let gSlide = 0;
+
+// ── 커서 안전 헬퍼 (모바일은 커서 없음)
+function cursorOn() {
+  if (cursor) { cursor.style.transform='translate(-50%,-50%) scale(2)'; cursor.style.background='#00d4ff'; }
+  if (ring)   { ring.style.transform='translate(-50%,-50%) scale(1.5)'; }
+}
+function cursorOff() {
+  if (cursor) { cursor.style.transform='translate(-50%,-50%) scale(1)'; cursor.style.background='#e91e8c'; }
+  if (ring)   { ring.style.transform='translate(-50%,-50%) scale(1)'; }
+}
+
+// ── 갤러리 시트 데이터 → GALLERY_DATA 변환
+function sheetToGallery(rows) {
+  const map = {};
+  rows.forEach(row => {
+    const cat   = String(row['카테고리']  || '').trim();
+    const title = String(row['작품제목']  || '').trim();
+    const grade = String(row['학년']      || '').trim();
+    const desc  = String(row['작품설명']  || '').trim();
+    let img     = String(row['이미지URL'] || '').trim(); // 주소 변수
+    const pub   = String(row['공개여부']  || '공개').trim();
+    const stu   = String(row['학생이름']  || '').trim();
+
+    // 구글 드라이브 링크 자동 변환 로직 추가
+    if (img.includes('drive.google.com')) {
+        let fileId = "";
+        if (img.includes('id=')) {
+            fileId = img.split('id=')[1].split('&')[0];
+        } else {
+            fileId = img.split('/d/')[1].split('/')[0];
+        }
+        img = `https://drive.google.com/uc?export=view&id=${fileId}`;
+    }
+
+    if (!cat || !title || pub === '비공개') return;
+    if (!map[cat]) map[cat] = [];
+    const sub = grade && desc ? `${grade} · ${desc}` : (grade || desc || title);
+    map[cat].push({ title, sub, img, student: stu });
+  });
+  return CAT_ORDER
+    .filter(c => map[c] && map[c].length > 0)
+    .map(c => ({ cat: c, ...CAT_STYLES[c], desc: '', slides: map[c] }));
+}
+
+// ── 수상 시트 데이터 → AWARD_DATA 변환
+const RANK_ICON_MAP = {
+  '대상':'🥇','금상':'🏅','최우수상':'🥈','우수상':'🥉',
+  '장려상':'🏆','교장상':'🎖️','특별상':'⭐','입선':'📌',
+};
+function sheetToAward(rows) {
+  return rows
+    .filter(r => String(r['수상명']||'').trim() && String(r['공개여부']||'공개').trim() !== '비공개')
+    .map(r => {
+      const rank = String(r['수상등급'] || '').trim();
+      return {
+        rank,
+        icon: RANK_ICON_MAP[rank] || '🏆',
+        title:   String(r['공모전명']  || '').trim(),
+        student: String(r['학생이름']  || '').trim(),
+        grade:   String(r['학년']      || '').trim(),
+        year:    String(r['수상연도']  || '').trim(),
+        type:    String(r['교내외']    || '교외').trim(),
+        tags:    String(r['태그']      || '').split(',').map(t=>t.trim()).filter(Boolean),
+      };
+    });
+}
+
+// ── Apps Script에서 갤러리 + 수상 데이터 한 번에 로드
+async function loadSheetData() {
+  if (!APPS_SCRIPT_URL) {
+    buildGallery();
+    renderAwards();
+    return;
+  }
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
+    if (!res.ok) throw new Error('fetch failed');
+    const json = await res.json();
+
+    // Apps Script가 { gallery:[...], award:[...] } 형태로 반환
+    if (json.gallery && Array.isArray(json.gallery)) {
+      const converted = sheetToGallery(json.gallery);
+      if (converted.length > 0) GALLERY_DATA = converted;
+    }
+    if (json.award && Array.isArray(json.award)) {
+      const converted = sheetToAward(json.award);
+      if (converted.length > 0) AWARD_DATA_LIVE = converted;
+    }
+  } catch(e) {
+    console.warn('시트 연결 실패, 샘플 데이터 사용:', e);
+  }
+  buildGallery();
+  renderAwards();
+}
+
+function buildGallery() {
+  const menu = document.getElementById('galleryMenu');
+  menu.innerHTML = '';
+
+  GALLERY_DATA.forEach((cat, ci) => {
+    const item = document.createElement('div');
+    item.className = 'gallery-menu-item' + (ci === 0 ? ' active' : '');
+    item.innerHTML = `
+      <div class="menu-bg" style="background:${cat.grad}"></div>
+      <div class="menu-content">
+        <div class="menu-num">CAT · 0${ci+1}</div>
+        <div class="menu-label">${cat.cat}</div>
+        <div class="menu-count">${cat.slides.length}개 작품</div>
+      </div>
+      <div class="menu-bar"></div>`;
+    item.addEventListener('mouseenter', () => switchCat(ci));
+    item.addEventListener('click',      () => switchCat(ci));
+    item.addEventListener('mouseenter', cursorOn);
+    item.addEventListener('mouseleave', cursorOff);
+    menu.appendChild(item);
+  });
+
+  renderSlides();
+}
+
+function renderSlides() {
+  const cat   = GALLERY_DATA[gCat];
+  const track = document.getElementById('viewerTrack');
+  const dots  = document.getElementById('viewerDots');
+  const total = document.getElementById('viewerTotal');
+
+  track.innerHTML = '';
+  cat.slides.forEach(sl => {
+    const slide = document.createElement('div');
+    slide.className = 'viewer-slide';
+    // 이미지 있으면 img, 없으면 그라디언트 배경
+    const bgHTML = sl.img
+      ? `<img class="viewer-slide-img" src="${sl.img}" alt="${sl.title}" loading="lazy">`
+      : `<div class="viewer-slide-bg" style="background:${cat.grad}"></div>`;
+    slide.innerHTML = `
+      ${bgHTML}
+      <div class="viewer-info">
+        <div class="viewer-category">◈ ${cat.cat}</div>
+        <div class="viewer-title">${sl.title}</div>
+        <div class="viewer-desc">${sl.sub}${sl.student ? ' · ' + sl.student : ''}</div>
+      </div>`;
+    track.appendChild(slide);
+  });
+
+  dots.innerHTML = '';
+  cat.slides.forEach((_, si) => {
+    const dot = document.createElement('div');
+    dot.className = 'viewer-dot' + (si === 0 ? ' active' : '');
+    dot.onclick = () => goSlide(si);
+    dots.appendChild(dot);
+  });
+
+  total.textContent = cat.slides.length;
+  goSlide(0, false);
+}
+
+function goSlide(idx, animate = true) {
+  const cat = GALLERY_DATA[gCat];
+  gSlide = Math.max(0, Math.min(idx, cat.slides.length - 1));
+  const track = document.getElementById('viewerTrack');
+  if (!animate) track.style.transition = 'none';
+  track.style.transform = `translateX(-${gSlide * 100}%)`;
+  if (!animate) setTimeout(() => track.style.transition = '', 50);
+  document.getElementById('viewerCur').textContent = gSlide + 1;
+  document.querySelectorAll('.viewer-dot').forEach((d, i) => d.classList.toggle('active', i === gSlide));
+}
+
+function galleryPrev() { goSlide(gSlide - 1); }
+function galleryNext() { goSlide(gSlide + 1); }
+
+function switchCat(ci) {
+  if (ci === gCat) return;
+  gCat = ci; gSlide = 0;
+  document.querySelectorAll('.gallery-menu-item').forEach((el, i) => el.classList.toggle('active', i === ci));
+  renderSlides();
+}
+
+// 터치 스와이프
+(function() {
+  let startX = 0;
+  const viewer = document.querySelector('#gallery');
+  viewer.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+  viewer.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 50) dx < 0 ? galleryNext() : galleryPrev();
+  });
+})();
+
+loadSheetData();
+
+// ── AWARD SECTION
+// 샘플 수상 데이터 (시트 연동 전 기본값)
+const AWARD_FALLBACK = [
+  { rank:'대상',    icon:'🥇', title:'전국 학생 만화·웹툰 공모전',      student:'김민서', grade:'3학년', year:'2024', type:'교외', tags:['웹툰','캐릭터','스토리'] },
+  { rank:'최우수상',icon:'🥈', title:'경기도 청소년 디자인 공모전',      student:'이준혁', grade:'2학년', year:'2024', type:'교외', tags:['포스터','타이포그래피'] },
+  { rank:'우수상',  icon:'🥉', title:'교내 졸업작품 전시 우수상',        student:'박소연', grade:'3학년', year:'2024', type:'교내', tags:['졸업작품','일러스트'] },
+  { rank:'금상',    icon:'🏅', title:'전국 고교생 일러스트 공모전',      student:'최유진', grade:'3학년', year:'2023', type:'교외', tags:['일러스트','캐릭터'] },
+  { rank:'교장상',  icon:'🎖️', title:'교내 디자인 포트폴리오 경진대회', student:'정하은', grade:'2학년', year:'2024', type:'교내', tags:['포트폴리오','편집'] },
+  { rank:'장려상',  icon:'🏆', title:'청소년 영상·모션 공모전',          student:'강지호', grade:'3학년', year:'2023', type:'교외', tags:['모션그래픽','영상'] },
+];
+let AWARD_DATA_LIVE = AWARD_FALLBACK;  // 시트 연동 후 덮어쓰임
+
+const RANK_COLORS = {
+  '대상':'#FFD700', '금상':'#FFD700', '최우수상':'#C0C0C0',
+  '우수상':'#CD7F32', '장려상':'#a855f7', '교장상':'#00d4ff',
+  '특별상':'#00d4ff', '입선':'#8888aa',
+};
+
+let awardFilter = '전체';
+
+function renderAwards() {
+  const grid = document.getElementById('awardGrid');
+  grid.innerHTML = '';
+  const list = awardFilter === '전체' ? AWARD_DATA_LIVE : AWARD_DATA_LIVE.filter(a => a.type === awardFilter);
+  if (list.length === 0) {
+    grid.innerHTML = '<div class="award-empty">해당 수상 내역이 없습니다.</div>';
+    return;
+  }
+  list.forEach((a, i) => {
+    const color = RANK_COLORS[a.rank] || 'var(--accent3)';
+    const card = document.createElement('div');
+    card.className = 'award-card';
+    card.style.cssText = `--award-color:${color}; animation-delay:${i*0.07}s`;
+    card.innerHTML = `
+      <div class="award-card-inner">
+        <div class="award-rank"><span class="award-rank-icon">${a.icon}</span>${a.rank}</div>
+        <div class="award-title">${a.title}</div>
+        <div class="award-student"><strong>${a.student}</strong> · ${a.grade} · ${a.year}</div>
+        <div class="award-meta">
+          <span class="award-tag type-${a.type==='교외'?'out':'in'}">${a.type==='교외'?'🏆 교외':'🏫 교내'}</span>
+          ${a.tags.map(t=>`<span class="award-tag">${t}</span>`).join('')}
+        </div>
+      </div>`;
+    card.addEventListener('mouseenter', cursorOn);
+    card.addEventListener('mouseleave', cursorOff);
+    grid.appendChild(card);
+  });
+}
+
+function filterAward(type, btn) {
+  awardFilter = type;
+  document.querySelectorAll('.award-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAwards();
+}
+
+renderAwards();
+
+
+
+
+// Scroll reveal
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Counter
+function animateCounter(el, target) {
+  let cur = 0;
+  const step = target / 60;
+  const iv = setInterval(() => {
+    cur += step;
+    if (cur >= target) { cur = target; clearInterval(iv); }
+    el.textContent = Math.floor(cur);
+  }, 20);
+}
+const statsObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('[data-target]').forEach(el => {
+        animateCounter(el, parseInt(el.dataset.target));
+      });
+      statsObs.disconnect();
+    }
+  });
+}, { threshold: 0.5 });
+const sb = document.querySelector('.stats-bar');
+if (sb) statsObs.observe(sb);
+
+// ── TOP 버튼
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.classList.toggle('visible', window.scrollY > 400);
+});
+topBtn.addEventListener('mouseenter', cursorOn);
+topBtn.addEventListener('mouseleave', cursorOff);
+
+function switchGrade(idx, btn) {
+  document.querySelectorAll('.cur-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.cur-panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+  animateCurBars(document.getElementById('cur-panel-'+idx));
+}
+function toggleCurSubject(el) { el.classList.toggle('open'); }
+function animateCurBars(panel) {
+  if (!panel) return;
+  panel.querySelectorAll('.cur-bar-fill').forEach(bar => {
+    bar.style.width = '0%';
+    setTimeout(() => { bar.style.width = bar.dataset.val + '%'; }, 100);
+  });
+}
+setTimeout(() => animateCurBars(document.getElementById('cur-panel-0')), 800);
+ 
+</script>
+</body>
+</html>
