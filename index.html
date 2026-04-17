@@ -1302,23 +1302,12 @@ function sheetToGallery(rows) {
     const title = String(row['작품제목']  || '').trim();
     const grade = String(row['학년']      || '').trim();
     const desc  = String(row['작품설명']  || '').trim();
-    let img     = String(row['이미지URL'] || '').trim(); // 주소 변수
+    const img   = String(row['이미지URL'] || '').trim();
     const pub   = String(row['공개여부']  || '공개').trim();
     const stu   = String(row['학생이름']  || '').trim();
-
-    // 구글 드라이브 링크 자동 변환 로직 추가
-    if (img.includes('drive.google.com')) {
-        let fileId = "";
-        if (img.includes('id=')) {
-            fileId = img.split('id=')[1].split('&')[0];
-        } else {
-            fileId = img.split('/d/')[1].split('/')[0];
-        }
-        img = `https://drive.google.com/uc?export=view&id=${fileId}`;
-    }
-
     if (!cat || !title || pub === '비공개') return;
     if (!map[cat]) map[cat] = [];
+    // sub: "학년 · 작품설명" 형태 (설명 없으면 학년만)
     const sub = grade && desc ? `${grade} · ${desc}` : (grade || desc || title);
     map[cat].push({ title, sub, img, student: stu });
   });
